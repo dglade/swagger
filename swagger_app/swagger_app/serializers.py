@@ -2,38 +2,94 @@ from rest_framework import serializers
 from swagger_app.models import Plot, Plant, Harvest
 
 
-class PlotSerializer(serializers.ModelSerializer):
+class PlotSerializer(serializers.Serializer):
+    x_coord = serializers.IntegerField()
+    y_coord = serializers.IntegerField()
+    plot_number = serializers.IntegerField()
 
-    class Meta:
-        model = Plot
-        fields = ('plot_number', 'x_coord', 'y_coord')
+    def create(self, validated_data):
+        plot = Plot.objects.create(**validated_data)
+        return plot
 
-#    def create(self, validated_data):
-#        plants_data = validated_data.pop('plants')
-#        plot = Plot.objects.create(**validated_data)
-#        for plant_data in plants_data:
-#            Plant.objects.create(plot=plot, **plant_data)
-#        return plot
-
-
-class PlantSerializer(serializers.ModelSerializer):
-    plot = serializers.PrimaryKeyRelatedField(many=False, read_only=False, queryset=Plot.objects.all(), allow_null=False)
-
-    class Meta:
-        model = Plant
-        fields = ('name', 'zone', 'plot')
-
-#    def create(self, validated_data):
-#        harvests_data = validated_data.pop('harvests')
-#        plant = Plant.objects.create(**validated_data)
-#        for harvest_data in harvests_data:
-#            Harvest.objects.create(plant=plant, **harvest_data)
+    def update(self, instance, validated_data):
+        instance.x_coord = validated_data.get('x_coord',
+                                              instance.x_coord)
+        instance.y_coord = validated_data.get('y_coord',
+                                              instance.y_coord)
+        instance.plot_number = validated_data.get('plot_number',
+                                                  instance.plot_number)
+        instance.save()
+        return instance
 
 
-class HarvestSerializer(serializers.ModelSerializer):
-    plant = serializers.PrimaryKeyRelatedField(many=False, read_only=False, queryset=Plant.objects.all(), allow_null=False)
+class PlantSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    zone = serializers.IntegerField()
+    plot = PlotSerializer()
+#    harvests = serializers.PrimaryKeyRelatedField(queryset=Harvest.objects.all(), many=True)
 
-    class Meta:
-        model = Harvest
-        fields = ('harvest_date', 'amount', 'plant')
+    def create(self, validated_data):
+        plot_data = validated_data.pop('plot')
+        plot = Plot.objects.create(**plot_data)
+        plant = Plant.objects.create(plot=plot, **validated_data)
+        return plant
+
+    def update(self, instance, validated_data):
+        plot_data = validated_data.pop('plot')
+        plot = instance.plot
+
+        instance.name = validated_data.get('name',
+                                           instance.name)
+        instance.zone = validated_data.get('zone',
+                                           instance.zone)
+        instance.save()
+
+        plot.x_coord = plot_data.get('x_coord', plot.x_coord)
+        plot.y_coord = plot_data.get('y_coord', plot.y_coord)
+        plot.plot_number = plot_data.get('plot_number',
+                                         plot.plot_number)
+        plot.save()
+        return instance
+
+
+class HarvestSerializer(serializers.Serializer):
+    harvest_date = serializers.DateField()
+    amount = serializers.IntegerField()
+    plant = PlantSerializer()
+
+    class __meta__:
+        depth = 2
+
+
+    def create(self, validated_data):
+        import pdb; pdb.set_trace()
+        plant_data = validated_data.pop('plant')
+        plot_data = plant_data.pop('plot')
+        plot = Plot.objects.update_or_create(**plot_data)[0]
+        plant = Plant.objects.update_or_create(plot=plot, **plant_data)[0]
+        harvest = Harvest.objects.create(plant=plant, **validated_data)
+        return harvest
+
+    def update(self, instance, validated_data):
+        plant_data = validated_data.pop('plant')
+        plot_data = plant_data.pop('plot')
+        plant = instance.plant
+        plot = plant.plot
+
+        instance.harvest_date = validated_data.get('harvest_date',
+                                                   instance.harvest_date)
+        instance.amount = validated_data.get('amount',
+                                             instance.amount)
+        instance.save()
+
+        plant.name = plant_data.get('name', plant.name)
+        plant.zone = plant_data.get('zone', plant.zone)
+        plant.save()
+
+        plot.x_coord = plot_data.get('x_coord', plot.x_coord)
+        plot.y_coord = plot_data.get('y_coord', plot.y_coord)
+        plot.plot_number = plot_data.get('plot_number',
+                                         plot.plot_number)
+        plot.save()
+        return instance
 
