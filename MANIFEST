@@ -4,6 +4,9 @@ requirements.txt
 setup.py
 swagger_app/manage.py
 swagger_app/swagger_app/__init__.py
+swagger_app/swagger_app/models.py
+swagger_app/swagger_app/serializers.py
 swagger_app/swagger_app/settings.py
 swagger_app/swagger_app/urls.py
+swagger_app/swagger_app/views.py
 swagger_app/swagger_app/wsgi.py
