@@ -8,7 +8,7 @@ class PlotSerializer(serializers.Serializer):
     plot_number = serializers.IntegerField()
 
     def create(self, validated_data):
-        plot = Plot.objects.create(**validated_data)
+        plot = Plot.objects.update_or_create(**validated_data)[0]
         return plot
 
     def update(self, instance, validated_data):
@@ -26,12 +26,12 @@ class PlantSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     zone = serializers.IntegerField()
     plot = PlotSerializer()
-#    harvests = serializers.PrimaryKeyRelatedField(queryset=Harvest.objects.all(), many=True)
 
     def create(self, validated_data):
         plot_data = validated_data.pop('plot')
-        plot = Plot.objects.create(**plot_data)
-        plant = Plant.objects.create(plot=plot, **validated_data)
+        plot = Plot.objects.update_or_create(**plot_data)[0]
+        plant = Plant.objects.update_or_create(plot=plot,
+                                               **validated_data)[0]
         return plant
 
     def update(self, instance, validated_data):
@@ -62,12 +62,12 @@ class HarvestSerializer(serializers.Serializer):
 
 
     def create(self, validated_data):
-        import pdb; pdb.set_trace()
         plant_data = validated_data.pop('plant')
         plot_data = plant_data.pop('plot')
         plot = Plot.objects.update_or_create(**plot_data)[0]
         plant = Plant.objects.update_or_create(plot=plot, **plant_data)[0]
-        harvest = Harvest.objects.create(plant=plant, **validated_data)
+        harvest = Harvest.objects.update_or_create(plant=plant,
+                                                   **validated_data)[0]
         return harvest
 
     def update(self, instance, validated_data):
